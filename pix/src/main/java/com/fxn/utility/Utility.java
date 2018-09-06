@@ -1,28 +1,22 @@
 package com.fxn.utility;
 
-import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Vibrator;
 import android.provider.MediaStore;
-import android.support.annotation.NonNull;
-import android.support.media.ExifInterface;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewPropertyAnimator;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -31,10 +25,8 @@ import com.fxn.pix.R;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 /**
@@ -42,9 +34,6 @@ import java.util.Locale;
  */
 
 public class Utility {
-
-    public static int HEIGHT, WIDTH;
-    private String pathDir;
 
     public static void setupStatusBarHidden(AppCompatActivity appCompatActivity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -91,13 +80,6 @@ public class Utility {
         return 0;
     }
 
-    public static void getScreenSize(Activity activity) {
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        activity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        HEIGHT = displayMetrics.heightPixels;
-        WIDTH = displayMetrics.widthPixels;
-    }
-
     public static float convertDpToPixel(float dp, Context context) {
         Resources resources = context.getResources();
         DisplayMetrics metrics = resources.getDisplayMetrics();
@@ -134,29 +116,22 @@ public class Utility {
     }
 
     public static Cursor getCursor(Context context) {
-        return context.getContentResolver().query(Constants.URI, Constants.PROJECTION,
-                null, null, Constants.ORDERBY);
-    }
 
-    public static boolean isViewVisible(View view) {
-        return view != null && view.getVisibility() == View.VISIBLE;
-    }
-
-    public static ViewPropertyAnimator showScrollbar(View mScrollbar, Context context) {
-        float transX = context.getResources().getDimensionPixelSize(R.dimen.fastscroll_scrollbar_padding_end);
-        mScrollbar.setTranslationX(transX);
-        mScrollbar.setVisibility(View.VISIBLE);
-        return mScrollbar.animate().translationX(0f).alpha(1f)
-                .setDuration(Constants.sScrollbarAnimDuration)
-                .setListener(new AnimatorListenerAdapter() {
-                    // adapter required for new alpha value to stick
-                });
-    }
-
-    public static void cancelAnimation(ViewPropertyAnimator animator) {
-        if (animator != null) {
-            animator.cancel();
-        }
+        return context
+                .getContentResolver()
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        new String[]{
+                                MediaStore.Images.Media.DATA,
+                                MediaStore.Images.Media._ID,
+                                MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
+                                MediaStore.Images.Media.BUCKET_ID,
+                                MediaStore.Images.Media.DATE_TAKEN,
+                                MediaStore.Images.Media.DATE_ADDED,
+                                MediaStore.Images.Media.DATE_MODIFIED,
+                        },
+                        null,
+                        null,
+                        MediaStore.Images.Media.DATE_TAKEN + " DESC");
     }
 
     public static void manipulateVisibility(AppCompatActivity activity, float slideOffset,
@@ -193,12 +168,6 @@ public class Utility {
         }
     }
 
-    @SuppressWarnings("SameParameterValue")
-    public static int getValueInRange(int min, int max, int value) {
-        int minimum = Math.max(min, value);
-        return Math.min(minimum, max);
-    }
-
     public static void vibe(Context c, long l) {
         ((Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE)).vibrate(l);
     }
@@ -224,44 +193,6 @@ public class Utility {
         return photo;
     }
 
-    public static Bitmap getExifCorrectedBitmap(File f) {
-        BitmapFactory.Options bounds = new BitmapFactory.Options();
-        bounds.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(f.getAbsolutePath(), bounds);
-
-        BitmapFactory.Options opts = new BitmapFactory.Options();
-        Bitmap bm = BitmapFactory.decodeFile(f.getAbsolutePath(), opts);
-        try {
-            ExifInterface exif = new ExifInterface(f.getAbsolutePath());
-
-            String orientString = exif.getAttribute(ExifInterface.TAG_ORIENTATION);
-            int orientation = orientString != null ? Integer.parseInt(orientString) : ExifInterface.ORIENTATION_NORMAL;
-
-            int rotationAngle = 0;
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) rotationAngle = 90;
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_180) rotationAngle = 180;
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_270) rotationAngle = 270;
-
-            Matrix matrix = new Matrix();
-            matrix.setRotate(rotationAngle, (float) bm.getWidth() / 2, (float) bm.getHeight() / 2);
-            return Bitmap.createBitmap(bm, 0, 0, bounds.outWidth, bounds.outHeight, matrix, true);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static Bitmap getScaledBitmap(int maxWidth, Bitmap rotatedBitmap) {
-        try {
-
-            int nh = (int) (rotatedBitmap.getHeight() * (512.0 / rotatedBitmap.getWidth()));
-            return Bitmap.createScaledBitmap(rotatedBitmap, maxWidth, nh, true);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     public static Bitmap rotate(Bitmap bitmap, int i) {
         Matrix matrix = new Matrix();
         matrix.postRotate(i);
@@ -280,76 +211,4 @@ public class Utility {
         }
     }
 
-    public List<Uri> getImagesFromGallary(Context context) {
-        List<Uri> images = new ArrayList<>();
-        Cursor imageCursor = null;
-        try {
-            final String[] columns = {MediaStore.Images.Media.DATA, MediaStore.Images.ImageColumns.ORIENTATION};
-            final String orderBy = MediaStore.Images.Media.DATE_ADDED + " DESC";
-            imageCursor = context.getApplicationContext().getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, null, null, orderBy);
-            while (imageCursor.moveToNext()) {
-                Uri uri = Uri.parse(imageCursor.getString(imageCursor.getColumnIndex(MediaStore.Images.Media.DATA)));
-                images.add(uri);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (imageCursor != null && !imageCursor.isClosed()) {
-                imageCursor.close();
-            }
-        }
-        return images;
-    }
-
-    @NonNull
-    private Uri[] getAllMediaThumbnailsPath(Context context, long id,
-                                            Boolean exceptGif) {
-        ContentResolver resolver = context.getContentResolver();
-        String selection = MediaStore.Images.Media.BUCKET_ID + " = ?";
-        String bucketId = String.valueOf(id);
-        String sort = MediaStore.Images.Media._ID + " DESC";
-        String[] selectionArgs = {bucketId};
-
-        Uri images = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        Cursor c;
-        if (!bucketId.equals("0")) {
-            c = resolver.query(images, null, selection, selectionArgs, sort);
-        } else {
-            c = resolver.query(images, null, null, null, sort);
-        }
-        Uri[] imageUris = new Uri[c == null ? 0 : c.getCount()];
-        if (c != null) {
-            try {
-                if (c.moveToFirst()) {
-                    setPathDir(c.getString(c.getColumnIndex(MediaStore.Images.Media.DATA)),
-                            c.getString(c.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME)));
-                    int position = -1;
-                    RegexUtil regexUtil = new RegexUtil();
-                    do {
-                        if (exceptGif &&
-                                regexUtil.checkGif(c.getString(c.getColumnIndex(MediaStore.Images.Media.DATA))))
-                            continue;
-                        int imgId = c.getInt(c.getColumnIndex(MediaStore.MediaColumns._ID));
-                        Uri path = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "" + imgId);
-                        imageUris[++position] = path;
-                    } while (c.moveToNext());
-                }
-                c.close();
-            } catch (Exception e) {
-                if (!c.isClosed()) c.close();
-            }
-        }
-        return imageUris;
-    }
-
-    private String setPathDir(String path, String fileName) {
-        return pathDir = path.replace("/" + fileName, "");
-    }
-
-    public String getPathDir(Long bucketId) {
-        if (pathDir.equals("") || bucketId == 0)
-            pathDir = Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DCIM + "/Camera").getAbsolutePath();
-        return pathDir;
-    }
 }

@@ -272,7 +272,6 @@ public class Pix extends AppCompatActivity {
     }
 
     private void initialize() {
-        Utility.getScreenSize(this);
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }

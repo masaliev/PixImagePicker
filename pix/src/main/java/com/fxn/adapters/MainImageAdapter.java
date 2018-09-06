@@ -1,6 +1,7 @@
 package com.fxn.adapters;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -34,7 +35,6 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public static final int SPAN_COUNT = 3;
     private static final int MARGIN = 2;
 
-    private Context context;
     private ArrayList<Img> list;
     private OnSelectionListener onSelectionListener;
     private FrameLayout.LayoutParams layoutParams;
@@ -42,10 +42,9 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private RequestOptions options;
 
     public MainImageAdapter(Context context) {
-        this.context = context;
         this.list = new ArrayList<>();
 
-        int size = Utility.WIDTH / SPAN_COUNT;
+        int size = Resources.getSystem().getDisplayMetrics().widthPixels / SPAN_COUNT;
         layoutParams = new FrameLayout.LayoutParams(size, size);
         layoutParams.setMargins(MARGIN, MARGIN - 1, MARGIN, MARGIN - 1);
         options = new RequestOptions().override(360).transform(new CenterCrop()).transform(new FitCenter());
