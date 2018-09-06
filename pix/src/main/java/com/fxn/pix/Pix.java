@@ -127,7 +127,7 @@ public class Pix extends AppCompatActivity {
                     sendButton.startAnimation(anim);
 
                 }
-                selection_count.setText(getResources().getString(R.string.pix_selected) + " " + selectionList.size());
+                selection_count.setText(getResources().getString(R.string.pix_selected, selectionList.size()));
                 img_count.setText(String.valueOf(selectionList.size()));
             } else {
                 selectionList.add(img);
@@ -160,7 +160,7 @@ public class Pix extends AppCompatActivity {
                 selection_check.setVisibility(View.GONE);
                 selection_ok.setVisibility(View.VISIBLE);
                 selection_count.setVisibility(View.VISIBLE);
-                selection_count.setText(getResources().getString(R.string.pix_selected) + " " + selectionList.size());
+                selection_count.setText(getResources().getString(R.string.pix_selected, selectionList.size()));
                 img_count.setText(String.valueOf(selectionList.size()));
             }
 
