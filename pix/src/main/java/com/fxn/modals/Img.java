@@ -11,47 +11,25 @@ public class Img implements Serializable {
     private String contentUrl;
     private String url;
     private Boolean isSelected;
-    private String scrollerDate;
-    private int position;
 
-    public Img(String headerDate, String contentUrl, String url, String scrollerDate) {
+    public Img(String headerDate, String contentUrl, String url) {
         this.headerDate = headerDate;
         this.contentUrl = contentUrl;
         this.url = url;
         this.isSelected = false;
-        this.scrollerDate = scrollerDate;
     }
 
-    public int getPosition() {
-        return position;
-    }
-
-    public void setPosition(int position) {
-        this.position = position;
-    }
 
     public String getHeaderDate() {
         return headerDate;
-    }
-
-    public void setHeaderDate(String headerDate) {
-        this.headerDate = headerDate;
     }
 
     public String getContentUrl() {
         return contentUrl;
     }
 
-    public void setContentUrl(String contentUrl) {
-        this.contentUrl = contentUrl;
-    }
-
     public String getUrl() {
         return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
     }
 
     public Boolean getSelected() {
@@ -62,11 +40,9 @@ public class Img implements Serializable {
         isSelected = selected;
     }
 
-    public String getScrollerDate() {
-        return scrollerDate;
-    }
-
-    public void setScrollerDate(String scrollerDate) {
-        this.scrollerDate = scrollerDate;
+    @Override
+    public boolean equals(Object obj) {
+        return obj != null && obj instanceof Img && contentUrl != null && contentUrl.length() > 0
+                && contentUrl.equals(((Img) obj).contentUrl);
     }
 }

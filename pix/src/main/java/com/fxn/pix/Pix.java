@@ -84,22 +84,16 @@ public class Pix extends AppCompatActivity {
     private TextView selection_count;
     private OnSelectionListener onSelectionListener = new OnSelectionListener() {
         @Override
-        public void OnClick(Img img, View view, int position) {
-            //Log.e("OnClick", "OnClick");
+        public void onClick(Img img) {
             if (LongSelection) {
                 if (selectionList.contains(img)) {
-                    selectionList.remove(img);
-                    initaliseadapter.select(false, position);
-                    mainImageAdapter.select(false, position);
+                    changeImageSelection(img, false);
                 } else {
                     if (SelectionCount <= selectionList.size()) {
                         Toast.makeText(Pix.this, String.format(getResources().getString(R.string.selection_limiter_pix), selectionList.size()), Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    img.setPosition(position);
-                    selectionList.add(img);
-                    initaliseadapter.select(true, position);
-                    mainImageAdapter.select(true, position);
+                    changeImageSelection(img, true);
                 }
                 if (selectionList.size() == 0) {
                     LongSelection = false;
@@ -136,7 +130,6 @@ public class Pix extends AppCompatActivity {
                 selection_count.setText(getResources().getString(R.string.pix_selected) + " " + selectionList.size());
                 img_count.setText(String.valueOf(selectionList.size()));
             } else {
-                img.setPosition(position);
                 selectionList.add(img);
                 returnObjects();
                 selection_ok.setVisibility(View.GONE);
@@ -145,10 +138,9 @@ public class Pix extends AppCompatActivity {
         }
 
         @Override
-        public void OnLongClick(Img img, View view, int position) {
+        public void onLongClick(Img img) {
             if (SelectionCount > 1) {
                 Utility.vibe(Pix.this, 50);
-                //Log.e("OnLongClick", "OnLongClick");
                 LongSelection = true;
                 if (selectionList.size() == 0) {
                     if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
@@ -163,16 +155,8 @@ public class Pix extends AppCompatActivity {
                         sendButton.startAnimation(anim);
                     }
                 }
-                if (selectionList.contains(img)) {
-                    selectionList.remove(img);
-                    initaliseadapter.select(false, position);
-                    mainImageAdapter.select(false, position);
-                } else {
-                    img.setPosition(position);
-                    selectionList.add(img);
-                    initaliseadapter.select(true, position);
-                    mainImageAdapter.select(true, position);
-                }
+                changeImageSelection(img, !selectionList.contains(img));
+
                 selection_check.setVisibility(View.GONE);
                 selection_ok.setVisibility(View.VISIBLE);
                 selection_count.setVisibility(View.VISIBLE);
@@ -400,7 +384,7 @@ public class Pix extends AppCompatActivity {
                                 File photo = Utility.writeImage(bitmap);
                                 Log.e("my pick saved", bitmap.toString() + "    ->  " + photo.length() / 1024);
                                 selectionList.clear();
-                                selectionList.add(new Img("", "", photo.getAbsolutePath(), ""));
+                                selectionList.add(new Img("", "", photo.getAbsolutePath()));
                                 returnObjects();
 
                             }
@@ -525,9 +509,9 @@ public class Pix extends AppCompatActivity {
             String dateDifference = Utility.getDateDifference(Pix.this, calendar);
             if (!header.equalsIgnoreCase("" + dateDifference)) {
                 header = "" + dateDifference;
-                INSTANTLIST.add(new Img("" + dateDifference, "", "", ""));
+                INSTANTLIST.add(new Img("" + dateDifference, "", ""));
             }
-            INSTANTLIST.add(new Img("" + header, "" + path, cursor.getString(data), ""));
+            INSTANTLIST.add(new Img("" + header, "" + path, cursor.getString(data)));
         }
         cursor.close();
         new ImageFetcher(Pix.this) {
@@ -574,10 +558,7 @@ public class Pix extends AppCompatActivity {
     public void onBackPressed() {
         if (selectionList.size() > 0) {
             for (Img img : selectionList) {
-                mainImageAdapter.getItemList().get(img.getPosition()).setSelected(false);
-                mainImageAdapter.notifyItemChanged(img.getPosition());
-                initaliseadapter.getItemList().get(img.getPosition()).setSelected(false);
-                initaliseadapter.notifyItemChanged(img.getPosition());
+                changeImageSelection(img, false);
             }
             LongSelection = false;
             if (SelectionCount > 1) {
@@ -610,7 +591,6 @@ public class Pix extends AppCompatActivity {
                 }
             });
             sendButton.startAnimation(anim);
-            selectionList.clear();
         } else if (mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         } else {
@@ -618,5 +598,15 @@ public class Pix extends AppCompatActivity {
         }
     }
 
+
+    private void changeImageSelection(Img img, boolean selection){
+        if (selection){
+            selectionList.add(img);
+        }else {
+            selectionList.remove(img);
+        }
+        mainImageAdapter.select(img, selection);
+        initaliseadapter.select(img, selection);
+    }
 
 }

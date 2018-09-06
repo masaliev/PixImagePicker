@@ -20,7 +20,6 @@ import com.fxn.interfaces.OnSelectionListener;
 import com.fxn.modals.Img;
 import com.fxn.pix.R;
 import com.fxn.utility.HeaderItemDecoration;
-import com.fxn.utility.Utility;
 
 import java.util.ArrayList;
 
@@ -51,10 +50,6 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         glide = Glide.with(context);
     }
 
-    public ArrayList<Img> getItemList() {
-        return list;
-    }
-
     public MainImageAdapter addImage(Img image) {
         list.add(image);
         notifyDataSetChanged();
@@ -81,9 +76,12 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         list.clear();
     }
 
-    public void select(boolean selection, int pos) {
-        list.get(pos).setSelected(selection);
-        notifyItemChanged(pos);
+    public void select(Img img, boolean selection){
+        int pos = list.indexOf(img);
+        if (pos >= 0){
+            list.get(pos).setSelected(selection);
+            notifyItemChanged(pos);
+        }
     }
 
     @Override
@@ -167,13 +165,13 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         @Override
         public void onClick(View view) {
             int id = this.getLayoutPosition();
-            onSelectionListener.OnClick(list.get(id), view, id);
+            onSelectionListener.onClick(list.get(id));
         }
 
         @Override
         public boolean onLongClick(View view) {
             int id = this.getLayoutPosition();
-            onSelectionListener.OnLongClick(list.get(id), view, id);
+            onSelectionListener.onLongClick(list.get(id));
             return true;
         }
     }

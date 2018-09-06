@@ -8,10 +8,8 @@ import android.provider.MediaStore;
 
 import com.fxn.modals.Img;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Locale;
 
 /**
  * Created by akshay on 06/04/18.
@@ -29,7 +27,6 @@ public class ImageFetcher extends AsyncTask<Cursor, Void, ArrayList<Img>> {
     protected ArrayList<Img> doInBackground(Cursor... cursors) {
         Cursor cursor = cursors[0];
         if (cursor != null) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH);
             int date = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
             int data = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
             int contentUrl = cursor.getColumnIndex(MediaStore.Images.Media._ID);
@@ -48,9 +45,9 @@ public class ImageFetcher extends AsyncTask<Cursor, Void, ArrayList<Img>> {
 
                 if (!header.equalsIgnoreCase(dateDifference)) {
                     header = dateDifference;
-                    LIST.add(new Img(dateDifference, "", "", dateFormat.format(calendar.getTime())));
+                    LIST.add(new Img(dateDifference, "", ""));
                 }
-                LIST.add(new Img(header, curl.toString(), cursor.getString(data), dateFormat.format(calendar.getTime())));
+                LIST.add(new Img(header, curl.toString(), cursor.getString(data)));
             }
             cursor.close();
         }

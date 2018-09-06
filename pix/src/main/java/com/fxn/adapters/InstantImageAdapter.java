@@ -50,10 +50,6 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         return this;
     }
 
-    public ArrayList<Img> getItemList() {
-        return list;
-    }
-
     public void addImageList(ArrayList<Img> images) {
         list.addAll(images);
         notifyDataSetChanged();
@@ -63,8 +59,9 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         list.clear();
     }
 
-    public void select(boolean selection, int pos) {
-        if (pos < 100) {
+    public void select(Img img, boolean selection){
+        int pos = list.indexOf(img);
+        if (pos >= 0){
             list.get(pos).setSelected(selection);
             notifyItemChanged(pos);
         }
@@ -135,13 +132,13 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         @Override
         public void onClick(View view) {
             int id = this.getLayoutPosition();
-            onSelectionListener.OnClick(list.get(id), view, id);
+            onSelectionListener.onClick(list.get(id));
         }
 
         @Override
         public boolean onLongClick(View view) {
             int id = this.getLayoutPosition();
-            onSelectionListener.OnLongClick(list.get(id), view, id);
+            onSelectionListener.onLongClick(list.get(id));
             return true;
         }
     }
