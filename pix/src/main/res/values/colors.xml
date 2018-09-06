@@ -2,4 +2,5 @@
 <resources>
     <color name="colorPrimaryPix">#075e54</color>
     <color name="colorPrimaryLightPix">#80075e54</color>
+    <color name="colorStatusBarPix">#CCCCCC</color>
 </resources>

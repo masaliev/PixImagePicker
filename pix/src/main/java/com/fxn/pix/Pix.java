@@ -157,8 +157,8 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                 if (selectionList.size() == 0) {
                     LongSelection = false;
                     selection_check.setVisibility(View.VISIBLE);
-                    DrawableCompat.setTint(selection_back.getDrawable(), colorPrimaryDark);
-                    topbar.setBackgroundColor(Color.parseColor("#ffffff"));
+                    selection_ok.setVisibility(View.GONE);
+                    selection_count.setVisibility(View.GONE);
                     Animation anim = new ScaleAnimation(
                             1f, 0f, // Start and end values for the X axis scaling
                             1f, 0f, // Start and end values for the Y axis scaling
@@ -192,8 +192,8 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                 img.setPosition(position);
                 selectionList.add(img);
                 returnObjects();
-                DrawableCompat.setTint(selection_back.getDrawable(), colorPrimaryDark);
-                topbar.setBackgroundColor(Color.parseColor("#ffffff"));
+                selection_ok.setVisibility(View.GONE);
+                selection_count.setVisibility(View.GONE);
             }
         }
 
@@ -227,10 +227,10 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                     mainImageAdapter.select(true, position);
                 }
                 selection_check.setVisibility(View.GONE);
-                topbar.setBackgroundColor(colorPrimaryDark);
+                selection_ok.setVisibility(View.VISIBLE);
+                selection_count.setVisibility(View.VISIBLE);
                 selection_count.setText(getResources().getString(R.string.pix_selected) + " " + selectionList.size());
                 img_count.setText(String.valueOf(selectionList.size()));
-                DrawableCompat.setTint(selection_back.getDrawable(), Color.parseColor("#ffffff"));
             }
 
         }
@@ -412,6 +412,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         topbar = findViewById(R.id.topbar);
         selection_count = findViewById(R.id.selection_count);
         selection_ok = findViewById(R.id.selection_ok);
+        selection_ok.setVisibility((SelectionCount > 1) ? View.GONE : View.VISIBLE);
         selection_back = findViewById(R.id.selection_back);
         selection_check = findViewById(R.id.selection_check);
         selection_check.setVisibility((SelectionCount > 1) ? View.VISIBLE : View.GONE);
@@ -515,12 +516,12 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         selection_check.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                topbar.setBackgroundColor(colorPrimaryDark);
                 selection_count.setText(getResources().getString(R.string.pix_tap_to_select));
                 img_count.setText(String.valueOf(selectionList.size()));
-                DrawableCompat.setTint(selection_back.getDrawable(), Color.parseColor("#ffffff"));
                 LongSelection = true;
                 selection_check.setVisibility(View.GONE);
+                selection_ok.setVisibility(View.VISIBLE);
+                selection_count.setVisibility(View.VISIBLE);
             }
         });
         final ImageView iv = (ImageView) flash.getChildAt(0);
@@ -580,7 +581,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                 }
             }
         });
-        DrawableCompat.setTint(selection_back.getDrawable(), colorPrimaryDark);
 
         updateImages();
     }
@@ -799,9 +799,9 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
             LongSelection = false;
             if (SelectionCount > 1) {
                 selection_check.setVisibility(View.VISIBLE);
+                selection_ok.setVisibility(View.GONE);
             }
-            DrawableCompat.setTint(selection_back.getDrawable(), colorPrimaryDark);
-            topbar.setBackgroundColor(Color.parseColor("#ffffff"));
+            selection_count.setVisibility(View.GONE);
             Animation anim = new ScaleAnimation(
                     1f, 0f, // Start and end values for the X axis scaling
                     1f, 0f, // Start and end values for the Y axis scaling
