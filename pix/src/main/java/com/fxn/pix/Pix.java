@@ -45,7 +45,6 @@ import com.fxn.utility.HeaderItemDecoration;
 import com.fxn.utility.ImageFetcher;
 import com.fxn.utility.PermUtil;
 import com.fxn.utility.Utility;
-import com.fxn.utility.ui.FastScrollStateChangeListener;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -80,7 +79,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     float zoom = 0.0f;
     float dist = 0.0f;
     private Handler handler = new Handler();
-    private FastScrollStateChangeListener mFastScrollStateChangeListener;
     private CameraView mCamera;
     private RecyclerView recyclerView, instantRecyclerView;
     private BottomSheetBehavior mBottomSheetBehavior;
@@ -758,9 +756,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                     showBubble();
                 }
 
-                if (mFastScrollStateChangeListener != null) {
-                    mFastScrollStateChangeListener.onFastScrollStart(this);
-                }
             case MotionEvent.ACTION_MOVE:
                 final float y = event.getRawY();
              /*   String text = mainImageAdapter.getSectionText(recyclerView.getVerticalScrollbarPosition()).trim();
@@ -779,9 +774,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                     handler.postDelayed(mScrollbarHider, sScrollbarHideDelay);
                 }
                 hideBubble();
-                if (mFastScrollStateChangeListener != null) {
-                    mFastScrollStateChangeListener.onFastScrollStop(this);
-                }
                 return true;
         }
         return super.onTouchEvent(event);
