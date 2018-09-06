@@ -16,7 +16,6 @@ import com.bumptech.glide.load.resource.bitmap.CenterCrop;
 import com.bumptech.glide.load.resource.bitmap.FitCenter;
 import com.bumptech.glide.request.RequestOptions;
 import com.fxn.interfaces.OnSelectionListener;
-import com.fxn.interfaces.SectionIndexer;
 import com.fxn.modals.Img;
 import com.fxn.pix.R;
 import com.fxn.utility.HeaderItemDecoration;
@@ -28,7 +27,7 @@ import java.util.ArrayList;
  * Created by akshay on 17/03/18.
  */
 
-public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements HeaderItemDecoration.StickyHeaderInterface, SectionIndexer {
+public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements HeaderItemDecoration.StickyHeaderInterface{
 
     public static final int HEADER = 1;
     public static final int ITEM = 2;
@@ -151,15 +150,6 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Override
     public boolean isHeader(int itemPosition) {
         return getItemViewType(itemPosition) == 1;
-    }
-
-    @Override
-    public String getSectionText(int position) {
-        return list.get(position).getHeaderDate();
-    }
-
-    public String getSectionMonthYearText(int position) {
-        return list.get(position).getScrollerDate();
     }
 
     public class Holder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
