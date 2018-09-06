@@ -7,19 +7,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.res.ResourcesCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -27,7 +23,6 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewPropertyAnimator;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
 import android.widget.FrameLayout;
@@ -40,7 +35,6 @@ import com.fxn.adapters.MainImageAdapter;
 import com.fxn.interfaces.OnSelectionListener;
 import com.fxn.interfaces.WorkFinish;
 import com.fxn.modals.Img;
-import com.fxn.utility.Constants;
 import com.fxn.utility.HeaderItemDecoration;
 import com.fxn.utility.ImageFetcher;
 import com.fxn.utility.PermUtil;
@@ -64,12 +58,9 @@ import io.fotoapparat.view.CameraView;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 
-public class Pix extends AppCompatActivity implements View.OnTouchListener {
+public class Pix extends AppCompatActivity {
 
-    private static final int sBubbleAnimDuration = 1000;
-    private static final int sScrollbarHideDelay = 1000;
     private static final String SELECTION = "selection";
-    private static final int sTrackSnapRange = 5;
     public static String IMAGE_RESULTS = "image_results";
     public static float TOPBAR_HEIGHT;
     int BottomBarHeight = 0;
@@ -78,60 +69,18 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     Fotoapparat fotoapparat;
     float zoom = 0.0f;
     float dist = 0.0f;
-    private Handler handler = new Handler();
     private CameraView mCamera;
     private RecyclerView recyclerView, instantRecyclerView;
     private BottomSheetBehavior mBottomSheetBehavior;
     private InstantImageAdapter initaliseadapter;
     private GridLayoutManager mLayoutManager;
-    private View status_bar_bg, mScrollbar, topbar, mainFrameLayout, bottomButtons, sendButton;
-    private TextView mBubbleView, selection_ok, img_count;
-    private ImageView mHandleView, clickme, selection_back, selection_check;
-    private ViewPropertyAnimator mScrollbarAnimator;
-    private ViewPropertyAnimator mBubbleAnimator;
+    private View status_bar_bg, topbar, mainFrameLayout, bottomButtons, sendButton;
+    private TextView selection_ok, img_count;
+    private ImageView clickme, selection_back, selection_check;
     private Set<Img> selectionList = new HashSet<>();
-    private Runnable mScrollbarHider = new Runnable() {
-        @Override
-        public void run() {
-            hideScrollbar();
-        }
-    };
     private MainImageAdapter mainImageAdapter;
-    private float mViewHeight;
-    private boolean mHideScrollbar = true;
     private boolean LongSelection = false;
     private int SelectionCount = 1;
-    private RecyclerView.OnScrollListener mScrollListener = new RecyclerView.OnScrollListener() {
-
-        @Override
-        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-            if (!mHandleView.isSelected() && recyclerView.isEnabled()) {
-                setViewPositions(getScrollProportion(recyclerView));
-            }
-        }
-
-        @Override
-        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-            super.onScrollStateChanged(recyclerView, newState);
-
-            if (recyclerView.isEnabled()) {
-                switch (newState) {
-                    case RecyclerView.SCROLL_STATE_DRAGGING:
-                        handler.removeCallbacks(mScrollbarHider);
-                        Utility.cancelAnimation(mScrollbarAnimator);
-                        if (!Utility.isViewVisible(mScrollbar) && (recyclerView.computeVerticalScrollRange() - mViewHeight > 0)) {
-                            mScrollbarAnimator = Utility.showScrollbar(mScrollbar, Pix.this);
-                        }
-                        break;
-                    case RecyclerView.SCROLL_STATE_IDLE:
-                        if (mHideScrollbar && !mHandleView.isSelected()) {
-                            handler.postDelayed(mScrollbarHider, sScrollbarHideDelay);
-                        }
-                        break;
-                }
-            }
-        }
-    };
     private TextView selection_count;
     private OnSelectionListener onSelectionListener = new OnSelectionListener() {
         @Override
@@ -281,26 +230,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         start(context, requestCode, 1);
     }
 
-    private void hideScrollbar() {
-        float transX = getResources().getDimensionPixelSize(R.dimen.fastscroll_scrollbar_padding_end);
-        mScrollbarAnimator = mScrollbar.animate().translationX(transX).alpha(0f)
-                .setDuration(Constants.sScrollbarAnimDuration)
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        super.onAnimationEnd(animation);
-                        mScrollbar.setVisibility(View.GONE);
-                        mScrollbarAnimator = null;
-                    }
-
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
-                        super.onAnimationCancel(animation);
-                        mScrollbar.setVisibility(View.GONE);
-                        mScrollbarAnimator = null;
-                    }
-                });
-    }
 
     public void returnObjects() {
         ArrayList<String> list = new ArrayList<>();
@@ -416,11 +345,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         selection_check.setVisibility((SelectionCount > 1) ? View.VISIBLE : View.GONE);
         sendButton = findViewById(R.id.sendButton);
         img_count = findViewById(R.id.img_count);
-        mBubbleView = findViewById(R.id.fastscroll_bubble);
-        mHandleView = findViewById(R.id.fastscroll_handle);
-        mScrollbar = findViewById(R.id.fastscroll_scrollbar);
-        mScrollbar.setVisibility(View.GONE);
-        mBubbleView.setVisibility(View.GONE);
         bottomButtons = findViewById(R.id.bottomButtons);
         TOPBAR_HEIGHT = Utility.convertDpToPixel(56, Pix.this);
         status_bar_bg = findViewById(R.id.status_bar_bg);
@@ -432,7 +356,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         initaliseadapter.addOnSelectionListener(onSelectionListener);
         instantRecyclerView.setAdapter(initaliseadapter);
         recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.addOnScrollListener(mScrollListener);
         mainFrameLayout = findViewById(R.id.mainFrameLayout);
         BottomBarHeight = Utility.getSoftButtonsBarSizePort(this);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
@@ -458,7 +381,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         mainImageAdapter.addOnSelectionListener(onSelectionListener);
         recyclerView.setAdapter(mainImageAdapter);
         recyclerView.addItemDecoration(new HeaderItemDecoration(this, recyclerView, mainImageAdapter));
-        mHandleView.setOnTouchListener(this);
         clickme.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -636,147 +558,17 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                         instantRecyclerView, recyclerView, status_bar_bg,
                         topbar, bottomButtons, sendButton, LongSelection);
                 if (slideOffset == 1) {
-                    Utility.showScrollbar(mScrollbar, Pix.this);
                     mainImageAdapter.notifyDataSetChanged();
-                    mViewHeight = mScrollbar.getMeasuredHeight();
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            setViewPositions(getScrollProportion(recyclerView));
-                        }
-                    });
                     sendButton.setVisibility(View.GONE);
                     //  fotoapparat.stop();
                 } else if (slideOffset == 0) {
 
                     initaliseadapter.notifyDataSetChanged();
-                    hideScrollbar();
                     img_count.setText(String.valueOf(selectionList.size()));
                     fotoapparat.start();
                 }
             }
         });
-    }
-
-    private float getScrollProportion(RecyclerView recyclerView) {
-        final int verticalScrollOffset = recyclerView.computeVerticalScrollOffset();
-        final int verticalScrollRange = recyclerView.computeVerticalScrollRange();
-        final float rangeDiff = verticalScrollRange - mViewHeight;
-        float proportion = (float) verticalScrollOffset / (rangeDiff > 0 ? rangeDiff : 1f);
-        return mViewHeight * proportion;
-    }
-
-    private void setViewPositions(float y) {
-        int handleY = Utility.getValueInRange(0, (int) (mViewHeight - mHandleView.getHeight()), (int) (y - mHandleView.getHeight() / 2));
-        mBubbleView.setY(handleY + Utility.convertDpToPixel((56), Pix.this));
-        mHandleView.setY(handleY);
-    }
-
-    private void setRecyclerViewPosition(float y) {
-        if (recyclerView != null && recyclerView.getAdapter() != null) {
-            int itemCount = recyclerView.getAdapter().getItemCount();
-            float proportion;
-
-            if (mHandleView.getY() == 0) {
-                proportion = 0f;
-            } else if (mHandleView.getY() + mHandleView.getHeight() >= mViewHeight - sTrackSnapRange) {
-                proportion = 1f;
-            } else {
-                proportion = y / mViewHeight;
-            }
-
-            int scrolledItemCount = Math.round(proportion * itemCount);
-            int targetPos = Utility.getValueInRange(0, itemCount - 1, scrolledItemCount);
-            recyclerView.getLayoutManager().scrollToPosition(targetPos);
-
-            if (mainImageAdapter != null) {
-                String text = mainImageAdapter.getSectionMonthYearText(targetPos);
-                mBubbleView.setText(text);
-                if (text.equalsIgnoreCase("")) {
-                    mBubbleView.setVisibility(View.GONE);
-                }
-            }
-        }
-    }
-
-    private void showBubble() {
-        if (!Utility.isViewVisible(mBubbleView)) {
-            mBubbleView.setVisibility(View.VISIBLE);
-            mBubbleView.setAlpha(0f);
-            mBubbleAnimator = mBubbleView.animate().alpha(1f)
-                    .setDuration(sBubbleAnimDuration)
-                    .setListener(new AnimatorListenerAdapter() {
-                        // adapter required for new alpha value to stick
-                    });
-            mBubbleAnimator.start();
-        }
-    }
-
-    private void hideBubble() {
-        if (Utility.isViewVisible(mBubbleView)) {
-            mBubbleAnimator = mBubbleView.animate().alpha(0f)
-                    .setDuration(sBubbleAnimDuration)
-                    .setListener(new AnimatorListenerAdapter() {
-
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            super.onAnimationEnd(animation);
-                            mBubbleView.setVisibility(View.GONE);
-                            mBubbleAnimator = null;
-                        }
-
-                        @Override
-                        public void onAnimationCancel(Animator animation) {
-                            super.onAnimationCancel(animation);
-                            mBubbleView.setVisibility(View.GONE);
-                            mBubbleAnimator = null;
-                        }
-                    });
-            mBubbleAnimator.start();
-        }
-    }
-
-    @Override
-    public boolean onTouch(View view, MotionEvent event) {
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                if (event.getX() < mHandleView.getX() - ViewCompat.getPaddingStart(mHandleView)) {
-                    return false;
-                }
-                mHandleView.setSelected(true);
-                handler.removeCallbacks(mScrollbarHider);
-                Utility.cancelAnimation(mScrollbarAnimator);
-                Utility.cancelAnimation(mBubbleAnimator);
-
-                if (!Utility.isViewVisible(mScrollbar) && (recyclerView.computeVerticalScrollRange() - mViewHeight > 0)) {
-                    mScrollbarAnimator = Utility.showScrollbar(mScrollbar, Pix.this);
-                }
-
-                if (mainImageAdapter != null) {
-                    showBubble();
-                }
-
-            case MotionEvent.ACTION_MOVE:
-                final float y = event.getRawY();
-             /*   String text = mainImageAdapter.getSectionText(recyclerView.getVerticalScrollbarPosition()).trim();
-                mBubbleView.setText("hello------>"+text+"<--");
-                if (text.equalsIgnoreCase("")) {
-                    mBubbleView.setVisibility(View.GONE);
-                }
-                Log.e("hello"," -->> "+ mBubbleView.getText());*/
-                setViewPositions(y - TOPBAR_HEIGHT);
-                setRecyclerViewPosition(y);
-                return true;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                mHandleView.setSelected(false);
-                if (mHideScrollbar) {
-                    handler.postDelayed(mScrollbarHider, sScrollbarHideDelay);
-                }
-                hideBubble();
-                return true;
-        }
-        return super.onTouchEvent(event);
     }
 
     @Override
