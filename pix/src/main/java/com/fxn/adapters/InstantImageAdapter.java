@@ -32,6 +32,9 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private RequestManager glide;
     private RequestOptions options;
 
+    private boolean mIsLoading;
+    private int mNextPage = 1;
+
     public InstantImageAdapter(Context context) {
         this.context = context;
         this.list = new ArrayList<>();
@@ -44,15 +47,13 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         this.onSelectionListener = onSelectionListener;
     }
 
-    public InstantImageAdapter addImage(Img image) {
-        list.add(image);
-        notifyDataSetChanged();
-        return this;
-    }
-
     public void addImageList(ArrayList<Img> images) {
+        if (images == null){
+            return;
+        }
+        int size = list.size();
         list.addAll(images);
-        notifyDataSetChanged();
+        notifyItemRangeChanged(size, images.size());
     }
 
     public void clearList() {
@@ -126,6 +127,22 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     @Override
     public int getItemCount() {
         return list.size();
+    }
+
+    public boolean isLoading() {
+        return mIsLoading;
+    }
+
+    public void setLoading(boolean loading) {
+        mIsLoading = loading;
+    }
+
+    public int getNextPage() {
+        return mNextPage;
+    }
+
+    public void setNextPage(int nextPage) {
+        mNextPage = nextPage;
     }
 
     public class Holder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {

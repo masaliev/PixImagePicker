@@ -40,6 +40,10 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     private RequestManager glide;
     private RequestOptions options;
 
+    private boolean mIsLoading;
+    private int mNextPage = 1;
+
+
     public MainImageAdapter(Context context) {
         this.list = new ArrayList<>();
 
@@ -50,19 +54,17 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         glide = Glide.with(context);
     }
 
-    public MainImageAdapter addImage(Img image) {
-        list.add(image);
-        notifyDataSetChanged();
-        return this;
-    }
-
     public void addOnSelectionListener(OnSelectionListener onSelectionListener) {
         this.onSelectionListener = onSelectionListener;
     }
 
     public void addImageList(ArrayList<Img> images) {
+        if (images == null){
+            return;
+        }
+        int size = list.size();
         list.addAll(images);
-        notifyDataSetChanged();
+        notifyItemRangeChanged(size, images.size());
     }
 
     @Override
@@ -158,6 +160,22 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Override
     public boolean isHeader(int itemPosition) {
         return getItemViewType(itemPosition) == 1;
+    }
+
+    public boolean isLoading() {
+        return mIsLoading;
+    }
+
+    public void setLoading(boolean loading) {
+        mIsLoading = loading;
+    }
+
+    public int getNextPage() {
+        return mNextPage;
+    }
+
+    public void setNextPage(int nextPage) {
+        mNextPage = nextPage;
     }
 
     public class Holder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {

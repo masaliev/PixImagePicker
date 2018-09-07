@@ -6,12 +6,9 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.Fragment;
@@ -44,7 +41,6 @@ import com.fxn.utility.Utility;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -87,6 +83,12 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
     private TextView topBarSelectionCount, sendButtonSelectionCount;
 
     private View btnSelectionOk, btnSelectionCheck;
+
+    private ImageFetcher.OnTaskCompleteListener mInstantOnTaskCompleteListener;
+    private ImageFetcher.OnTaskCompleteListener mMainOnTaskCompleteListener;
+    private String mLastMonthText;
+    private String mLastWeekText;
+    private String mRecentText;
 
 
     private OnSelectionListener onSelectionListener = new OnSelectionListener() {
@@ -245,10 +247,14 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         sendButton.setLayoutParams(layoutParams);
         sendButton.setOnClickListener(this);
 
+        mLastMonthText = getString(R.string.pix_last_month);
+        mLastWeekText = getString(R.string.pix_last_week);
+        mRecentText = getString(R.string.pix_recent);
+
         setUpInstantRecyclerView();
         setUpMainRecyclerView();
 
-        updateImages();
+        setBottomSheetBehavior();
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -311,13 +317,43 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
     private void setUpInstantRecyclerView() {
         instantRecyclerView = findViewById(R.id.instantRecyclerView);
 
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
         instantRecyclerView.setLayoutManager(linearLayoutManager);
 
         mInstantImageAdapter = new InstantImageAdapter(this);
         mInstantImageAdapter.addOnSelectionListener(onSelectionListener);
         instantRecyclerView.setAdapter(mInstantImageAdapter);
+
+        mInstantOnTaskCompleteListener = new ImageFetcher.OnTaskCompleteListener() {
+            @Override
+            public void onStart() {
+                mInstantImageAdapter.setLoading(true);
+            }
+
+            @Override
+            public void onComplete(ArrayList<Img> images) {
+                mInstantImageAdapter.addImageList(images);
+                mInstantImageAdapter.setNextPage(mInstantImageAdapter.getNextPage() + 1);
+                mInstantImageAdapter.setLoading(false);
+            }
+        };
+
+        instantRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if(dx > 0) {
+                    int totalItem = linearLayoutManager.getItemCount();
+                    int lastVisibleItem = linearLayoutManager.findLastVisibleItemPosition();
+
+                    if (lastVisibleItem > totalItem - 2 && mInstantImageAdapter != null && !mInstantImageAdapter.isLoading()) {
+                        fetchNextInstantImages();
+                    }
+                }
+            }
+        });
+        fetchNextInstantImages();
     }
 
     private void setUpMainRecyclerView() {
@@ -327,7 +363,7 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         mMainImageAdapter.addOnSelectionListener(onSelectionListener);
         mainRecyclerView.setAdapter(mMainImageAdapter);
 
-        GridLayoutManager layoutManager = new GridLayoutManager(this, MainImageAdapter.SPAN_COUNT);
+        final GridLayoutManager layoutManager = new GridLayoutManager(this, MainImageAdapter.SPAN_COUNT);
         layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
@@ -339,44 +375,52 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         });
         mainRecyclerView.setLayoutManager(layoutManager);
         mainRecyclerView.addItemDecoration(new HeaderItemDecoration(this, mainRecyclerView, mMainImageAdapter));
+
+        mMainOnTaskCompleteListener = new ImageFetcher.OnTaskCompleteListener() {
+            @Override
+            public void onStart() {
+                mMainImageAdapter.setLoading(true);
+            }
+
+            @Override
+            public void onComplete(ArrayList<Img> images) {
+                mMainImageAdapter.addImageList(images);
+                mMainImageAdapter.setNextPage(mMainImageAdapter.getNextPage() + 1);
+                mMainImageAdapter.setLoading(false);
+            }
+        };
+
+        mainRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    int totalItem = layoutManager.getItemCount();
+                    int lastVisibleItem = layoutManager.findLastVisibleItemPosition();
+
+                    if (lastVisibleItem > totalItem - 6 && mMainImageAdapter != null && !mMainImageAdapter.isLoading()) {
+                        fetchNextMainImages();
+                    }
+                }
+            }
+        });
+        fetchNextMainImages();
     }
 
-    private void updateImages() {
-        mMainImageAdapter.clearList();
-        Cursor cursor = Utility.getCursor(Pix.this);
-        ArrayList<Img> INSTANTLIST = new ArrayList<>();
-        String header = "";
-        int limit = 100;
-        if (cursor.getCount() < 100) {
-            limit = cursor.getCount();
-        }
-        int date = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
-        int data = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
-        int contentUrl = cursor.getColumnIndex(MediaStore.Images.Media._ID);
-        Calendar calendar;
-        for (int i = 0; i < limit; i++) {
-            cursor.moveToNext();
-            Uri path = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "" + cursor.getInt(contentUrl));
-            calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(cursor.getLong(date));
-            String dateDifference = Utility.getDateDifference(Pix.this, calendar);
-            if (!header.equalsIgnoreCase("" + dateDifference)) {
-                header = "" + dateDifference;
-                INSTANTLIST.add(new Img("" + dateDifference, "", ""));
-            }
-            INSTANTLIST.add(new Img("" + header, "" + path, cursor.getString(data)));
-        }
-        cursor.close();
-        new ImageFetcher(Pix.this) {
-            @Override
-            protected void onPostExecute(ArrayList<Img> imgs) {
-                super.onPostExecute(imgs);
-                mMainImageAdapter.addImageList(imgs);
-            }
-        }.execute(Utility.getCursor(Pix.this));
-        mInstantImageAdapter.addImageList(INSTANTLIST);
-        mMainImageAdapter.addImageList(INSTANTLIST);
-        setBottomSheetBehavior();
+    private void fetchNextInstantImages(){
+        new ImageFetcher(mLastMonthText, mLastWeekText, mRecentText)
+                .execute(Utility.getCursor(Pix.this),
+                        mInstantImageAdapter.getNextPage(),
+                        10,
+                        mInstantOnTaskCompleteListener);
+    }
+
+    private void fetchNextMainImages(){
+        new ImageFetcher(mLastMonthText, mLastWeekText, mRecentText)
+                .execute(Utility.getCursor(Pix.this),
+                        mMainImageAdapter.getNextPage(),
+                        30,
+                        mMainOnTaskCompleteListener);
     }
 
     private void setBottomSheetBehavior() {
