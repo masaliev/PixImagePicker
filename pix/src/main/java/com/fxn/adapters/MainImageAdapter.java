@@ -76,6 +76,17 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         list.clear();
     }
 
+    public void clearSelection(){
+        Img img;
+        for (int i = 0; i < list.size(); i++){
+            img = list.get(i);
+            if (img.getSelected()){
+                img.setSelected(false);
+                notifyItemChanged(i);
+            }
+        }
+    }
+
     public void select(Img img, boolean selection){
         int pos = list.indexOf(img);
         if (pos >= 0){

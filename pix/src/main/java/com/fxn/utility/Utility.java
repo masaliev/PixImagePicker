@@ -6,7 +6,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Vibrator;
@@ -18,7 +17,6 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 
 import com.fxn.pix.R;
 
@@ -34,14 +32,6 @@ import java.util.Locale;
  */
 
 public class Utility {
-
-    public static void setupStatusBarHidden(AppCompatActivity appCompatActivity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Window w = appCompatActivity.getWindow();
-            w.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-            w.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-        }
-    }
 
     public static void showStatusBar(AppCompatActivity appCompatActivity) {
         synchronized (appCompatActivity) {

@@ -41,7 +41,7 @@
                 app:layout_behavior="android.support.design.widget.BottomSheetBehavior">
 
                 <android.support.v7.widget.RecyclerView
-                    android:id="@+id/recyclerView"
+                    android:id="@+id/mainRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginLeft="-2px"
@@ -90,7 +90,7 @@
                             android:gravity="center_vertical"
                             android:text="@string/pix_ok"
                             android:textColor="@color/colorPrimaryPix"
-                            android:textSize="20sp"/>
+                            android:textSize="20sp" />
 
                         <ImageView
                             android:id="@+id/selection_check"
@@ -147,7 +147,7 @@
             android:layout_gravity="bottom">
 
             <ImageView
-                android:id="@+id/clickme"
+                android:id="@+id/takePicture"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
                 android:layout_gravity="center|bottom"
@@ -165,13 +165,14 @@
                 android:padding="11dp">
 
                 <ImageView
+                    android:id="@+id/ivFlashSwitcher"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:src="@drawable/ic_flash_off_black_24dp" />
             </FrameLayout>
 
             <ImageView
-                android:id="@+id/front"
+                android:id="@+id/ivLensSwitcher"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:layout_gravity="top|right"

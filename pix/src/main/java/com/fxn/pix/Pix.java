@@ -3,6 +3,7 @@ package com.fxn.pix;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
@@ -15,7 +16,6 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -23,6 +23,8 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
 import android.widget.FrameLayout;
@@ -58,118 +60,70 @@ import io.fotoapparat.view.CameraView;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 
-public class Pix extends AppCompatActivity {
+public class Pix extends AppCompatActivity implements View.OnClickListener {
 
     private static final String SELECTION = "selection";
-    public static String IMAGE_RESULTS = "image_results";
-    public static float TOPBAR_HEIGHT;
-    int BottomBarHeight = 0;
-    int colorPrimaryDark;
+    public static final String IMAGE_RESULTS = "image_results";
 
-    Fotoapparat fotoapparat;
-    float zoom = 0.0f;
-    float dist = 0.0f;
-    private CameraView mCamera;
-    private RecyclerView recyclerView, instantRecyclerView;
+    private int mMaxImageCount = 1;
+    private boolean mIsMultiSelectMode = false;
+    private Set<Img> mSelectionList = new HashSet<>();
+
+    private MainImageAdapter mMainImageAdapter;
+    private InstantImageAdapter mInstantImageAdapter;
+
+    private Fotoapparat fotoapparat;
+
+    private boolean isBackLensSelected = true;
+    private ImageView ivLensSwitcher;
+    private ImageView ivFlashSwitcher;
+    private int flashDrawable = R.drawable.ic_flash_off_black_24dp;
+
+    private RecyclerView mainRecyclerView, instantRecyclerView;
+
     private BottomSheetBehavior mBottomSheetBehavior;
-    private InstantImageAdapter initaliseadapter;
-    private GridLayoutManager mLayoutManager;
-    private View status_bar_bg, topbar, mainFrameLayout, bottomButtons, sendButton;
-    private TextView selection_ok, img_count;
-    private ImageView clickme, selection_back, selection_check;
-    private Set<Img> selectionList = new HashSet<>();
-    private MainImageAdapter mainImageAdapter;
-    private boolean LongSelection = false;
-    private int SelectionCount = 1;
-    private TextView selection_count;
+
+    private View statusBarBg, topBar, bottomButtons, sendButton;
+    private TextView topBarSelectionCount, sendButtonSelectionCount;
+
+    private View btnSelectionOk, btnSelectionCheck;
+
+
     private OnSelectionListener onSelectionListener = new OnSelectionListener() {
         @Override
         public void onClick(Img img) {
-            if (LongSelection) {
-                if (selectionList.contains(img)) {
+            if (mIsMultiSelectMode) {
+                if (mSelectionList.contains(img)) {
                     changeImageSelection(img, false);
                 } else {
-                    if (SelectionCount <= selectionList.size()) {
-                        Toast.makeText(Pix.this, String.format(getResources().getString(R.string.selection_limiter_pix), selectionList.size()), Toast.LENGTH_SHORT).show();
+                    if (mMaxImageCount <= mSelectionList.size()) {
+                        Toast.makeText(Pix.this, String.format(getResources().getString(R.string.selection_limiter_pix), mSelectionList.size()), Toast.LENGTH_SHORT).show();
                         return;
                     }
                     changeImageSelection(img, true);
                 }
-                if (selectionList.size() == 0) {
-                    LongSelection = false;
-                    selection_check.setVisibility(View.VISIBLE);
-                    selection_ok.setVisibility(View.GONE);
-                    selection_count.setVisibility(View.GONE);
-                    Animation anim = new ScaleAnimation(
-                            1f, 0f, // Start and end values for the X axis scaling
-                            1f, 0f, // Start and end values for the Y axis scaling
-                            Animation.RELATIVE_TO_SELF, 0.5f, // Pivot point of X scaling
-                            Animation.RELATIVE_TO_SELF, 0.5f); // Pivot point of Y scaling
-                    anim.setFillAfter(true); // Needed to keep the result of the animation
-                    anim.setDuration(300);
-                    anim.setAnimationListener(new Animation.AnimationListener() {
-                        @Override
-                        public void onAnimationStart(Animation animation) {
-
-                        }
-
-                        @Override
-                        public void onAnimationEnd(Animation animation) {
-                            sendButton.setVisibility(View.GONE);
-                            sendButton.clearAnimation();
-                        }
-
-                        @Override
-                        public void onAnimationRepeat(Animation animation) {
-
-                        }
-                    });
-                    sendButton.startAnimation(anim);
-
+                if (mSelectionList.size() == 0) {
+                    mIsMultiSelectMode = false;
                 }
-                selection_count.setText(getResources().getString(R.string.pix_selected, selectionList.size()));
-                img_count.setText(String.valueOf(selectionList.size()));
+
             } else {
-                selectionList.add(img);
+                mSelectionList.add(img);
                 returnObjects();
-                selection_ok.setVisibility(View.GONE);
-                selection_count.setVisibility(View.GONE);
+                btnSelectionOk.setVisibility(View.GONE);
+                topBarSelectionCount.setVisibility(View.GONE);
             }
         }
 
         @Override
         public void onLongClick(Img img) {
-            if (SelectionCount > 1) {
+            if (mMaxImageCount > 1) {
                 Utility.vibe(Pix.this, 50);
-                LongSelection = true;
-                if (selectionList.size() == 0) {
-                    if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-                        sendButton.setVisibility(View.VISIBLE);
-                        Animation anim = new ScaleAnimation(
-                                0f, 1f, // Start and end values for the X axis scaling
-                                0f, 1f, // Start and end values for the Y axis scaling
-                                Animation.RELATIVE_TO_SELF, 0.5f, // Pivot point of X scaling
-                                Animation.RELATIVE_TO_SELF, 0.5f); // Pivot point of Y scaling
-                        anim.setFillAfter(true); // Needed to keep the result of the animation
-                        anim.setDuration(300);
-                        sendButton.startAnimation(anim);
-                    }
-                }
-                changeImageSelection(img, !selectionList.contains(img));
-
-                selection_check.setVisibility(View.GONE);
-                selection_ok.setVisibility(View.VISIBLE);
-                selection_count.setVisibility(View.VISIBLE);
-                selection_count.setText(getResources().getString(R.string.pix_selected, selectionList.size()));
-                img_count.setText(String.valueOf(selectionList.size()));
+                mIsMultiSelectMode = true;
+                changeImageSelection(img, !mSelectionList.contains(img));
             }
 
         }
     };
-    private FrameLayout flash;
-    private ImageView front;
-    private boolean isback = true;
-    private int flashDrawable;
 
     public static void start(final Fragment context, final int requestCode, final int selectionCount) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -217,9 +171,8 @@ public class Pix extends AppCompatActivity {
 
     public void returnObjects() {
         ArrayList<String> list = new ArrayList<>();
-        for (Img i : selectionList) {
+        for (Img i : mSelectionList) {
             list.add(i.getUrl());
-            // Log.e("Pix images", "img " + i.getUrl());
         }
         Intent resultIntent = new Intent();
         resultIntent.putStringArrayListExtra(IMAGE_RESULTS, list);
@@ -230,29 +183,17 @@ public class Pix extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Utility.setupStatusBarHidden(this);
+
+        //setupStatusBarHidden
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Window w = getWindow();
+            w.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            w.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+        }
+
         Utility.hideStatusBar(this);
         setContentView(R.layout.activity_main_lib);
         initialize();
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        initialize();
-        fotoapparat.start();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        fotoapparat.start();
-    }
-
-    @Override
-    protected void onPause() {
-        fotoapparat.stop();
-        super.onPause();
     }
 
     private void initialize() {
@@ -260,13 +201,60 @@ public class Pix extends AppCompatActivity {
             getSupportActionBar().hide();
         }
         try {
-            SelectionCount = getIntent().getIntExtra(SELECTION, 1);
+            mMaxImageCount = getIntent().getIntExtra(SELECTION, 1);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        colorPrimaryDark = ResourcesCompat.getColor(getResources(), R.color.colorPrimaryPix, getTheme());
-        mCamera = findViewById(R.id.camera_view);
-        fotoapparat = Fotoapparat.with(this).into(mCamera)
+
+        setUpCamera();
+
+        ImageView btnTakePicture = findViewById(R.id.takePicture);
+        btnTakePicture.setOnClickListener(this);
+        ivLensSwitcher = findViewById(R.id.ivLensSwitcher);
+        ivLensSwitcher.setOnClickListener(this);
+        ivFlashSwitcher = findViewById(R.id.ivFlashSwitcher);
+        ivFlashSwitcher.setOnClickListener(this);
+
+        topBar = findViewById(R.id.topbar);
+        bottomButtons = findViewById(R.id.bottomButtons);
+        statusBarBg = findViewById(R.id.status_bar_bg);
+
+        topBarSelectionCount = findViewById(R.id.selection_count);
+        sendButtonSelectionCount = findViewById(R.id.img_count);
+
+        findViewById(R.id.selection_back).setOnClickListener(this);
+
+        btnSelectionOk = findViewById(R.id.selection_ok);
+        btnSelectionOk.setVisibility((mMaxImageCount > 1) ? View.GONE : View.VISIBLE);
+        btnSelectionOk.setOnClickListener(this);
+
+        btnSelectionCheck = findViewById(R.id.selection_check);
+        btnSelectionCheck.setVisibility((mMaxImageCount > 1) ? View.VISIBLE : View.GONE);
+        btnSelectionCheck.setOnClickListener(this);
+
+        View mainFrameLayout = findViewById(R.id.mainFrameLayout);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT);
+        lp.setMargins(0, 0, 0, Utility.getSoftButtonsBarSizePort(this));
+        mainFrameLayout.setLayoutParams(lp);
+
+        sendButton = findViewById(R.id.sendButton);
+        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) sendButton.getLayoutParams();
+        layoutParams.setMargins(0, 0, (int) (Utility.convertDpToPixel(16, this)),
+                (int) (Utility.convertDpToPixel(174, this)));
+        sendButton.setLayoutParams(layoutParams);
+        sendButton.setOnClickListener(this);
+
+        setUpInstantRecyclerView();
+        setUpMainRecyclerView();
+
+        updateImages();
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setUpCamera() {
+        CameraView camera = findViewById(R.id.camera_view);
+        fotoapparat = Fotoapparat.with(this).into(camera)
                 .previewScaleType(ScaleType.CenterCrop)  // we want the preview to fill the view
                 // .photoResolution(ResolutionSelectorsKt.lowestResolution())   // we want to have the biggest photo possible
                 .lensPosition(LensPositionSelectorsKt.back())      // we want back camera
@@ -282,8 +270,11 @@ public class Pix extends AppCompatActivity {
                 ))*/
                 .build();
 
-        zoom = 0.0f;
-        mCamera.setOnTouchListener(new View.OnTouchListener() {
+        camera.setOnTouchListener(new View.OnTouchListener() {
+
+            float mZoom = 0.0f;
+            float dist = 0.0f;
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getPointerCount() > 1) {
@@ -298,15 +289,15 @@ public class Pix extends AppCompatActivity {
                             float newDist = Utility.getFingerSpacing(event);
                             if (newDist > dist) {
                                 //zoom in
-                                if (zoom < maxZoom)
-                                    zoom = zoom + 0.01f;
+                                if (mZoom < maxZoom)
+                                    mZoom = mZoom + 0.01f;
                             } else if (newDist < dist) {
                                 //zoom out
-                                if (zoom > 0)
-                                    zoom = zoom - 0.01f;
+                                if (mZoom > 0)
+                                    mZoom = mZoom - 0.01f;
                             }
                             dist = newDist;
-                            fotoapparat.setZoom(zoom);
+                            fotoapparat.setZoom(mZoom);
                             break;
                     }
                 }
@@ -315,181 +306,43 @@ public class Pix extends AppCompatActivity {
         });
         fotoapparat.start();
         fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.autoRedEye()).build());
+    }
 
-        clickme = findViewById(R.id.clickme);
-        flash = findViewById(R.id.flash);
-        front = findViewById(R.id.front);
-        topbar = findViewById(R.id.topbar);
-        selection_count = findViewById(R.id.selection_count);
-        selection_ok = findViewById(R.id.selection_ok);
-        selection_ok.setVisibility((SelectionCount > 1) ? View.GONE : View.VISIBLE);
-        selection_back = findViewById(R.id.selection_back);
-        selection_check = findViewById(R.id.selection_check);
-        selection_check.setVisibility((SelectionCount > 1) ? View.VISIBLE : View.GONE);
-        sendButton = findViewById(R.id.sendButton);
-        img_count = findViewById(R.id.img_count);
-        bottomButtons = findViewById(R.id.bottomButtons);
-        TOPBAR_HEIGHT = Utility.convertDpToPixel(56, Pix.this);
-        status_bar_bg = findViewById(R.id.status_bar_bg);
+    private void setUpInstantRecyclerView() {
         instantRecyclerView = findViewById(R.id.instantRecyclerView);
+
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
         instantRecyclerView.setLayoutManager(linearLayoutManager);
-        initaliseadapter = new InstantImageAdapter(this);
-        initaliseadapter.addOnSelectionListener(onSelectionListener);
-        instantRecyclerView.setAdapter(initaliseadapter);
-        recyclerView = findViewById(R.id.recyclerView);
-        mainFrameLayout = findViewById(R.id.mainFrameLayout);
-        BottomBarHeight = Utility.getSoftButtonsBarSizePort(this);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT);
-        lp.setMargins(0, 0, 0, BottomBarHeight);
-        mainFrameLayout.setLayoutParams(lp);
-        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) sendButton.getLayoutParams();
-        layoutParams.setMargins(0, 0, (int) (Utility.convertDpToPixel(16, this)),
-                (int) (Utility.convertDpToPixel(174, this)));
-        sendButton.setLayoutParams(layoutParams);
-        mainImageAdapter = new MainImageAdapter(this);
-        mLayoutManager = new GridLayoutManager(this, MainImageAdapter.SPAN_COUNT);
-        mLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+
+        mInstantImageAdapter = new InstantImageAdapter(this);
+        mInstantImageAdapter.addOnSelectionListener(onSelectionListener);
+        instantRecyclerView.setAdapter(mInstantImageAdapter);
+    }
+
+    private void setUpMainRecyclerView() {
+        mainRecyclerView = findViewById(R.id.mainRecyclerView);
+
+        mMainImageAdapter = new MainImageAdapter(this);
+        mMainImageAdapter.addOnSelectionListener(onSelectionListener);
+        mainRecyclerView.setAdapter(mMainImageAdapter);
+
+        GridLayoutManager layoutManager = new GridLayoutManager(this, MainImageAdapter.SPAN_COUNT);
+        layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
-                if (mainImageAdapter.getItemViewType(position) == MainImageAdapter.HEADER) {
+                if (mMainImageAdapter.getItemViewType(position) == MainImageAdapter.HEADER) {
                     return MainImageAdapter.SPAN_COUNT;
                 }
                 return 1;
             }
         });
-        recyclerView.setLayoutManager(mLayoutManager);
-        mainImageAdapter.addOnSelectionListener(onSelectionListener);
-        recyclerView.setAdapter(mainImageAdapter);
-        recyclerView.addItemDecoration(new HeaderItemDecoration(this, recyclerView, mainImageAdapter));
-        clickme.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                fotoapparat.takePicture().toBitmap().transform(new Function1<BitmapPhoto, Bitmap>() {
-                    @Override
-                    public Bitmap invoke(BitmapPhoto bitmapPhoto) {
-                        Log.e("my pick transform", bitmapPhoto.toString());
-                        fotoapparat.stop();
-                        return Utility.rotate(bitmapPhoto.bitmap, -bitmapPhoto.rotationDegrees);
-                    }
-                }).whenAvailable(new Function1<Bitmap, Unit>() {
-                    @Override
-                    public Unit invoke(Bitmap bitmap) {
-                        if (bitmap != null) {
-                            Log.e("my pick", bitmap.toString());
-                            synchronized (bitmap) {
-                                File photo = Utility.writeImage(bitmap);
-                                Log.e("my pick saved", bitmap.toString() + "    ->  " + photo.length() / 1024);
-                                selectionList.clear();
-                                selectionList.add(new Img("", "", photo.getAbsolutePath()));
-                                returnObjects();
-
-                            }
-                        }
-                        return null;
-                    }
-                });
-            }
-        });
-        selection_ok.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // Toast.makeText(Pix.this, "fin", Toast.LENGTH_SHORT).show();
-                //Log.e("Hello", "onclick");
-                returnObjects();
-            }
-        });
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //Toast.makeText(Pix.this, "fin", Toast.LENGTH_SHORT).show();
-                //Log.e("Hello", "onclick");
-                returnObjects();
-            }
-        });
-        selection_back.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-            }
-        });
-        selection_check.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                selection_count.setText(getResources().getString(R.string.pix_tap_to_select));
-                img_count.setText(String.valueOf(selectionList.size()));
-                LongSelection = true;
-                selection_check.setVisibility(View.GONE);
-                selection_ok.setVisibility(View.VISIBLE);
-                selection_count.setVisibility(View.VISIBLE);
-            }
-        });
-        final ImageView iv = (ImageView) flash.getChildAt(0);
-
-        flashDrawable = R.drawable.ic_flash_off_black_24dp;
-        flash.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                final CameraConfiguration cameraConfiguration = new CameraConfiguration();
-                final int height = flash.getHeight();
-                iv.animate().translationY(height).setDuration(100).setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        super.onAnimationEnd(animation);
-                        iv.setTranslationY(-(height / 2));
-                        if (flashDrawable == R.drawable.ic_flash_auto_black_24dp) {
-                            flashDrawable = R.drawable.ic_flash_off_black_24dp;
-                            iv.setImageResource(flashDrawable);
-                            fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.off()).build());
-                        } else if (flashDrawable == R.drawable.ic_flash_off_black_24dp) {
-                            flashDrawable = R.drawable.ic_flash_on_black_24dp;
-                            iv.setImageResource(flashDrawable);
-                            fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.on()).build());
-                        } else {
-                            flashDrawable = R.drawable.ic_flash_auto_black_24dp;
-                            iv.setImageResource(flashDrawable);
-                            fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.autoRedEye()).build());
-                        }
-                        // fotoapparat.focus();
-                        iv.animate().translationY(0).setDuration(50).setListener(null).start();
-                    }
-                }).start();
-            }
-        });
-
-        front.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                final CameraConfiguration cameraConfiguration = new CameraConfiguration();
-                final ObjectAnimator oa1 = ObjectAnimator.ofFloat(front, "scaleX", 1f, 0f).setDuration(150);
-                final ObjectAnimator oa2 = ObjectAnimator.ofFloat(front, "scaleX", 0f, 1f).setDuration(150);
-                oa1.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        super.onAnimationEnd(animation);
-                        front.setImageResource(R.drawable.ic_photo_camera);
-                        oa2.start();
-                    }
-                });
-                oa1.start();
-                if (isback) {
-                    isback = false;
-                    fotoapparat.switchTo(LensPositionSelectorsKt.front(), cameraConfiguration);
-                } else {
-                    isback = true;
-                    fotoapparat.switchTo(LensPositionSelectorsKt.back(), cameraConfiguration);
-                }
-            }
-        });
-
-        updateImages();
+        mainRecyclerView.setLayoutManager(layoutManager);
+        mainRecyclerView.addItemDecoration(new HeaderItemDecoration(this, mainRecyclerView, mMainImageAdapter));
     }
 
     private void updateImages() {
-        mainImageAdapter.clearList();
+        mMainImageAdapter.clearList();
         Cursor cursor = Utility.getCursor(Pix.this);
         ArrayList<Img> INSTANTLIST = new ArrayList<>();
         String header = "";
@@ -518,11 +371,11 @@ public class Pix extends AppCompatActivity {
             @Override
             protected void onPostExecute(ArrayList<Img> imgs) {
                 super.onPostExecute(imgs);
-                mainImageAdapter.addImageList(imgs);
+                mMainImageAdapter.addImageList(imgs);
             }
         }.execute(Utility.getCursor(Pix.this));
-        initaliseadapter.addImageList(INSTANTLIST);
-        mainImageAdapter.addImageList(INSTANTLIST);
+        mInstantImageAdapter.addImageList(INSTANTLIST);
+        mMainImageAdapter.addImageList(INSTANTLIST);
         setBottomSheetBehavior();
     }
 
@@ -538,16 +391,16 @@ public class Pix extends AppCompatActivity {
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
                 Utility.manipulateVisibility(Pix.this, slideOffset,
-                        instantRecyclerView, recyclerView, status_bar_bg,
-                        topbar, bottomButtons, sendButton, LongSelection);
+                        instantRecyclerView, mainRecyclerView, statusBarBg,
+                        topBar, bottomButtons, sendButton, mIsMultiSelectMode);
                 if (slideOffset == 1) {
-                    mainImageAdapter.notifyDataSetChanged();
+                    mMainImageAdapter.notifyDataSetChanged();
                     sendButton.setVisibility(View.GONE);
                     //  fotoapparat.stop();
                 } else if (slideOffset == 0) {
 
-                    initaliseadapter.notifyDataSetChanged();
-                    img_count.setText(String.valueOf(selectionList.size()));
+                    mInstantImageAdapter.notifyDataSetChanged();
+                    sendButtonSelectionCount.setText(String.valueOf(mSelectionList.size()));
                     fotoapparat.start();
                 }
             }
@@ -556,41 +409,10 @@ public class Pix extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (selectionList.size() > 0) {
-            for (Img img : selectionList) {
-                changeImageSelection(img, false);
-            }
-            LongSelection = false;
-            if (SelectionCount > 1) {
-                selection_check.setVisibility(View.VISIBLE);
-                selection_ok.setVisibility(View.GONE);
-            }
-            selection_count.setVisibility(View.GONE);
-            Animation anim = new ScaleAnimation(
-                    1f, 0f, // Start and end values for the X axis scaling
-                    1f, 0f, // Start and end values for the Y axis scaling
-                    Animation.RELATIVE_TO_SELF, 0.5f, // Pivot point of X scaling
-                    Animation.RELATIVE_TO_SELF, 0.5f); // Pivot point of Y scaling
-            anim.setFillAfter(true); // Needed to keep the result of the animation
-            anim.setDuration(300);
-            anim.setAnimationListener(new Animation.AnimationListener() {
-                @Override
-                public void onAnimationStart(Animation animation) {
+        if (mSelectionList.size() > 0) {
+            clearImageSelection();
+            mIsMultiSelectMode = false;
 
-                }
-
-                @Override
-                public void onAnimationEnd(Animation animation) {
-                    sendButton.setVisibility(View.GONE);
-                    sendButton.clearAnimation();
-                }
-
-                @Override
-                public void onAnimationRepeat(Animation animation) {
-
-                }
-            });
-            sendButton.startAnimation(anim);
         } else if (mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         } else {
@@ -598,15 +420,209 @@ public class Pix extends AppCompatActivity {
         }
     }
 
+    private void clearImageSelection() {
+        mMainImageAdapter.clearSelection();
+        mInstantImageAdapter.clearSelection();
+        mSelectionList.clear();
 
-    private void changeImageSelection(Img img, boolean selection){
-        if (selection){
-            selectionList.add(img);
-        }else {
-            selectionList.remove(img);
-        }
-        mainImageAdapter.select(img, selection);
-        initaliseadapter.select(img, selection);
+        checkSelectedImageCount();
     }
 
+    private void changeImageSelection(Img img, boolean selection) {
+        if (selection) {
+            mSelectionList.add(img);
+        } else {
+            mSelectionList.remove(img);
+        }
+        mMainImageAdapter.select(img, selection);
+        mInstantImageAdapter.select(img, selection);
+
+        checkSelectedImageCount();
+    }
+
+    private void checkSelectedImageCount() {
+        if (mSelectionList.size() == 0) {
+            topBarSelectionCount.setVisibility(View.GONE);
+            btnSelectionOk.setVisibility(View.GONE);
+            if (mMaxImageCount > 1) {
+                btnSelectionCheck.setVisibility(View.VISIBLE);
+            } else {
+                btnSelectionCheck.setVisibility(View.GONE);
+            }
+
+            if (sendButton.getVisibility() == View.VISIBLE) {
+                Animation anim = new ScaleAnimation(
+                        1f, 0f, // Start and end values for the X axis scaling
+                        1f, 0f, // Start and end values for the Y axis scaling
+                        Animation.RELATIVE_TO_SELF, 0.5f, // Pivot point of X scaling
+                        Animation.RELATIVE_TO_SELF, 0.5f); // Pivot point of Y scaling
+                anim.setFillAfter(true); // Needed to keep the result of the animation
+                anim.setDuration(300);
+                anim.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        sendButton.setVisibility(View.GONE);
+                        sendButton.clearAnimation();
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+
+                    }
+                });
+                sendButton.startAnimation(anim);
+            }
+
+        } else {
+            topBarSelectionCount.setText(getResources().getString(R.string.pix_selected, mSelectionList.size()));
+            sendButtonSelectionCount.setText(String.valueOf(mSelectionList.size()));
+            if (mMaxImageCount > 1) {
+                topBarSelectionCount.setVisibility(View.VISIBLE);
+                btnSelectionOk.setVisibility(View.VISIBLE);
+            } else {
+                topBarSelectionCount.setVisibility(View.GONE);
+                btnSelectionOk.setVisibility(View.GONE);
+            }
+            btnSelectionCheck.setVisibility(View.GONE);
+
+            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED && sendButton.getVisibility() == View.GONE) {
+                sendButton.setVisibility(View.VISIBLE);
+                Animation anim = new ScaleAnimation(
+                        0f, 1f, // Start and end values for the X axis scaling
+                        0f, 1f, // Start and end values for the Y axis scaling
+                        Animation.RELATIVE_TO_SELF, 0.5f, // Pivot point of X scaling
+                        Animation.RELATIVE_TO_SELF, 0.5f); // Pivot point of Y scaling
+                anim.setFillAfter(true); // Needed to keep the result of the animation
+                anim.setDuration(300);
+                sendButton.startAnimation(anim);
+            }
+        }
+    }
+
+    private void toggleLensPosition() {
+        final CameraConfiguration cameraConfiguration = new CameraConfiguration();
+        final ObjectAnimator oa1 = ObjectAnimator.ofFloat(ivLensSwitcher, "scaleX", 1f, 0f).setDuration(150);
+        final ObjectAnimator oa2 = ObjectAnimator.ofFloat(ivLensSwitcher, "scaleX", 0f, 1f).setDuration(150);
+        oa1.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                oa2.start();
+            }
+        });
+        oa1.start();
+        if (isBackLensSelected) {
+            isBackLensSelected = false;
+            fotoapparat.switchTo(LensPositionSelectorsKt.front(), cameraConfiguration);
+        } else {
+            isBackLensSelected = true;
+            fotoapparat.switchTo(LensPositionSelectorsKt.back(), cameraConfiguration);
+        }
+    }
+
+    private void toggleFlash() {
+        final int height = ivFlashSwitcher.getHeight();
+        ivFlashSwitcher.animate().translationY(height).setDuration(100).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                ivFlashSwitcher.setTranslationY(-(height / 2));
+                if (flashDrawable == R.drawable.ic_flash_auto_black_24dp) {
+                    flashDrawable = R.drawable.ic_flash_off_black_24dp;
+                    ivFlashSwitcher.setImageResource(flashDrawable);
+                    fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.off()).build());
+                } else if (flashDrawable == R.drawable.ic_flash_off_black_24dp) {
+                    flashDrawable = R.drawable.ic_flash_on_black_24dp;
+                    ivFlashSwitcher.setImageResource(flashDrawable);
+                    fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.on()).build());
+                } else {
+                    flashDrawable = R.drawable.ic_flash_auto_black_24dp;
+                    ivFlashSwitcher.setImageResource(flashDrawable);
+                    fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.autoRedEye()).build());
+                }
+                ivFlashSwitcher.animate().translationY(0).setDuration(50).setListener(null).start();
+            }
+        }).start();
+    }
+
+    private void onSelectionCheckClick() {
+        topBarSelectionCount.setText(getResources().getString(R.string.pix_tap_to_select));
+        sendButtonSelectionCount.setText(String.valueOf(mSelectionList.size()));
+        mIsMultiSelectMode = true;
+        btnSelectionCheck.setVisibility(View.GONE);
+        btnSelectionOk.setVisibility(View.VISIBLE);
+        topBarSelectionCount.setVisibility(View.VISIBLE);
+    }
+
+    private void takePicture() {
+        fotoapparat.takePicture().toBitmap().transform(new Function1<BitmapPhoto, Bitmap>() {
+            @Override
+            public Bitmap invoke(BitmapPhoto bitmapPhoto) {
+                Log.e("my pick transform", bitmapPhoto.toString());
+                fotoapparat.stop();
+                return Utility.rotate(bitmapPhoto.bitmap, -bitmapPhoto.rotationDegrees);
+            }
+        }).whenAvailable(new Function1<Bitmap, Unit>() {
+            @Override
+            public Unit invoke(Bitmap bitmap) {
+                if (bitmap != null) {
+                    Log.e("my pick", bitmap.toString());
+                    synchronized (bitmap) {
+                        File photo = Utility.writeImage(bitmap);
+                        Log.e("my pick saved", bitmap.toString() + "    ->  " + photo.length() / 1024);
+                        mSelectionList.clear();
+                        mSelectionList.add(new Img("", "", photo.getAbsolutePath()));
+                        returnObjects();
+
+                    }
+                }
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void onClick(View v) {
+        int id = v.getId();
+        if (id == R.id.ivLensSwitcher) {
+            toggleLensPosition();
+        } else if (id == R.id.ivFlashSwitcher) {
+            toggleFlash();
+        } else if (id == R.id.selection_ok) {
+            returnObjects();
+        } else if (id == R.id.selection_check) {
+            onSelectionCheckClick();
+        } else if (id == R.id.selection_back) {
+            onBackPressed();
+        } else if (id == R.id.sendButton) {
+            returnObjects();
+        } else if (id == R.id.takePicture) {
+            takePicture();
+        }
+
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        initialize();
+        fotoapparat.start();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        fotoapparat.start();
+    }
+
+    @Override
+    protected void onPause() {
+        fotoapparat.stop();
+        super.onPause();
+    }
 }
