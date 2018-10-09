@@ -79,6 +79,7 @@
                             android:layout_marginRight="10dp"
                             android:gravity="center_vertical"
                             android:textColor="@color/colorPrimaryPix"
+                            android:text="@string/pix_tap_to_select"
                             android:textSize="20sp" />
 
                         <TextView
@@ -91,16 +92,6 @@
                             android:text="@string/pix_ok"
                             android:textColor="@color/colorPrimaryPix"
                             android:textSize="20sp" />
-
-                        <ImageView
-                            android:id="@+id/selection_check"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:layout_gravity="center_vertical|right"
-                            android:layout_marginRight="20dp"
-                            android:gravity="center_vertical"
-                            android:tint="@color/colorPrimaryPix"
-                            android:src="@drawable/ic_check_box" />
                     </FrameLayout>
 
                     <android.support.v7.widget.RecyclerView

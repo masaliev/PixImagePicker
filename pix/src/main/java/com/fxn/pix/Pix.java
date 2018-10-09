@@ -41,8 +41,7 @@ import com.fxn.utility.Utility;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import io.fotoapparat.Fotoapparat;
 import io.fotoapparat.configuration.CameraConfiguration;
@@ -62,8 +61,8 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
     public static final String IMAGE_RESULTS = "image_results";
 
     private int mMaxImageCount = 1;
-    private boolean mIsMultiSelectMode = false;
-    private Set<Img> mSelectionList = new HashSet<>();
+    private boolean mIsMultiSelectMode = true;
+    private List<Img> mSelectionList = new ArrayList<>();
 
     private MainImageAdapter mMainImageAdapter;
     private InstantImageAdapter mInstantImageAdapter;
@@ -104,10 +103,6 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
                     }
                     changeImageSelection(img, true);
                 }
-                if (mSelectionList.size() == 0) {
-                    mIsMultiSelectMode = false;
-                }
-
             } else {
                 mSelectionList.add(img);
                 returnObjects();
@@ -116,15 +111,6 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
             }
         }
 
-        @Override
-        public void onLongClick(Img img) {
-            if (mMaxImageCount > 1) {
-                Utility.vibe(Pix.this, 50);
-                mIsMultiSelectMode = true;
-                changeImageSelection(img, !mSelectionList.contains(img));
-            }
-
-        }
     };
 
     public static void start(final Fragment context, final int requestCode, final int selectionCount) {
@@ -207,6 +193,7 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        mIsMultiSelectMode = mMaxImageCount > 1;
 
         setUpCamera();
 
@@ -230,10 +217,6 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         btnSelectionOk.setVisibility((mMaxImageCount > 1) ? View.GONE : View.VISIBLE);
         btnSelectionOk.setOnClickListener(this);
 
-        btnSelectionCheck = findViewById(R.id.selection_check);
-        btnSelectionCheck.setVisibility((mMaxImageCount > 1) ? View.VISIBLE : View.GONE);
-        btnSelectionCheck.setOnClickListener(this);
-
         View mainFrameLayout = findViewById(R.id.mainFrameLayout);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT);
@@ -250,6 +233,8 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         mLastMonthText = getString(R.string.pix_last_month);
         mLastWeekText = getString(R.string.pix_last_week);
         mRecentText = getString(R.string.pix_recent);
+
+        checkSelectedImageCount();
 
         setUpInstantRecyclerView();
         setUpMainRecyclerView();
@@ -445,6 +430,9 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
 
                     mInstantImageAdapter.notifyDataSetChanged();
                     sendButtonSelectionCount.setText(String.valueOf(mSelectionList.size()));
+                    if (mSelectionList.size() == 0){
+                        sendButton.setVisibility(View.GONE);
+                    }
                     fotoapparat.start();
                 }
             }
@@ -455,8 +443,6 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
     public void onBackPressed() {
         if (mSelectionList.size() > 0) {
             clearImageSelection();
-            mIsMultiSelectMode = false;
-
         } else if (mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         } else {
@@ -486,13 +472,13 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
 
     private void checkSelectedImageCount() {
         if (mSelectionList.size() == 0) {
-            topBarSelectionCount.setVisibility(View.GONE);
-            btnSelectionOk.setVisibility(View.GONE);
-            if (mMaxImageCount > 1) {
-                btnSelectionCheck.setVisibility(View.VISIBLE);
-            } else {
-                btnSelectionCheck.setVisibility(View.GONE);
+            if (mMaxImageCount > 1){
+                topBarSelectionCount.setText(R.string.pix_tap_to_select);
+                topBarSelectionCount.setVisibility(View.VISIBLE);
+            }else {
+                topBarSelectionCount.setVisibility(View.GONE);
             }
+            btnSelectionOk.setVisibility(View.GONE);
 
             if (sendButton.getVisibility() == View.VISIBLE) {
                 Animation anim = new ScaleAnimation(
@@ -523,16 +509,15 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
             }
 
         } else {
-            topBarSelectionCount.setText(getResources().getString(R.string.pix_selected, mSelectionList.size()));
             sendButtonSelectionCount.setText(String.valueOf(mSelectionList.size()));
             if (mMaxImageCount > 1) {
+                topBarSelectionCount.setText(getResources().getString(R.string.pix_selected, mSelectionList.size()));
                 topBarSelectionCount.setVisibility(View.VISIBLE);
                 btnSelectionOk.setVisibility(View.VISIBLE);
             } else {
                 topBarSelectionCount.setVisibility(View.GONE);
                 btnSelectionOk.setVisibility(View.GONE);
             }
-            btnSelectionCheck.setVisibility(View.GONE);
 
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED && sendButton.getVisibility() == View.GONE) {
                 sendButton.setVisibility(View.VISIBLE);
@@ -594,15 +579,6 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
         }).start();
     }
 
-    private void onSelectionCheckClick() {
-        topBarSelectionCount.setText(getResources().getString(R.string.pix_tap_to_select));
-        sendButtonSelectionCount.setText(String.valueOf(mSelectionList.size()));
-        mIsMultiSelectMode = true;
-        btnSelectionCheck.setVisibility(View.GONE);
-        btnSelectionOk.setVisibility(View.VISIBLE);
-        topBarSelectionCount.setVisibility(View.VISIBLE);
-    }
-
     private void takePicture() {
         fotoapparat.takePicture().toBitmap().transform(new Function1<BitmapPhoto, Bitmap>() {
             @Override
@@ -639,8 +615,6 @@ public class Pix extends AppCompatActivity implements View.OnClickListener {
             toggleFlash();
         } else if (id == R.id.selection_ok) {
             returnObjects();
-        } else if (id == R.id.selection_check) {
-            onSelectionCheckClick();
         } else if (id == R.id.selection_back) {
             onBackPressed();
         } else if (id == R.id.sendButton) {
