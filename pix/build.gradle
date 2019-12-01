@@ -5,10 +5,10 @@ ext {
     PUBLISH_VERSION = '1.2.5'
 }
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 2
         versionName "1.2.5"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -32,14 +32,14 @@ repositories {
 def supportLibraryVersion = '27.1.1'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:' + supportLibraryVersion
-    implementation 'com.android.support:design:' + supportLibraryVersion
-    implementation 'com.android.support:exifinterface:' + supportLibraryVersion
+
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'com.google.android.material:material:1.2.0-alpha02'
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'io.fotoapparat.fotoapparat:library:2.3.1'
-    implementation 'com.github.bumptech.glide:glide:4.7.1'
-    implementation 'com.android.support:recyclerview-v7:' + supportLibraryVersion
+    implementation 'com.github.bumptech.glide:glide:4.10.0'
 }
 
 apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
